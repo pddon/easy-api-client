@@ -46,10 +46,26 @@ export class ApiSignPreHandler implements ApiPreHandler{
         let ignoreSignParams = new Set(api.ignoreSignParams);
         let signParams:any = {};
         Object.keys(data).filter(key => !ignoreSignParams.has(key)).forEach(key => {
-            signParams[key] = data[key];
+            let value = data[key];
+
+            if(typeof value === 'object' && value != null){
+                Object.keys(value).filter(subKey => !ignoreSignParams.has(`${key}.${subKey}`)).forEach(subKey => {
+                    signParams[`${key}.${subKey}`] = value[subKey];
+                });
+            }else{
+                signParams[key] = value;
+            }
         });
         data.parameters && Object.keys(data.parameters).filter(key => !ignoreSignParams.has(key)).forEach(key => {
-            signParams[key] = data.parameters[key];
+            let value = data.parameters[key];
+
+            if(typeof value === 'object' && value != null){
+                Object.keys(value).filter(subKey => !ignoreSignParams.has(`${key}.${subKey}`)).forEach(subKey => {
+                    signParams[`${key}.${subKey}`] = value[subKey];
+                });
+            }else{
+                signParams[key] = value;
+            }
         });
         let timestamp = Date.now();
 

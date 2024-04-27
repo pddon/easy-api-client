@@ -3,12 +3,13 @@ import {
     ApiClient,
     ApiDesc,
     ApiOptions,
-    ApiPreHandler,
+    ApiPreHandler, ApiResponseInterceptor,
     RequestType
 } from "../ApiClient";
 import axios, {AxiosInstance, AxiosRequestConfig, AxiosResponse} from "axios";
 import {ApiEncryptPreHandler, ApiSignPreHandler, ApiSysParamSetPreHandler} from "./ApiPreHandlerInstances";
 import {ApiCheckSignAfterHandler, ApiDecryptAfterHandler} from "./ApiAfterHandlerInstances";
+import {DefaultApiResponseInterceptor} from "./ApiResponseInterceptor";
 
 export function newApiClientInstance(options: ApiOptions): ApiClient{
     let client = ApiClientInstance.newInstance(options);
@@ -18,6 +19,7 @@ export function newApiClientInstance(options: ApiOptions): ApiClient{
     client.addPreHandler(ApiSignPreHandler.newInstance());
     client.addPreHandler(ApiEncryptPreHandler.newInstance());
     client.addPreHandler(ApiSysParamSetPreHandler.newInstance());
+    client.addResponseInterceptor(new DefaultApiResponseInterceptor());
     return client;
 }
 
@@ -25,8 +27,8 @@ export class ApiClientInstance implements ApiClient{
     api?: AxiosInstance;
     options: ApiOptions;
     preHandlers: ApiPreHandler[] = [];
-
     afterHandlers: ApiAfterHandler[] = [];
+    interceptors: ApiResponseInterceptor[] = [];
 
     private apiMethodMappings?: {
         "head": (url: string, data?: any, config?: AxiosRequestConfig<any>) => Promise<AxiosResponse<any>>;
@@ -107,46 +109,31 @@ export class ApiClientInstance implements ApiClient{
     }
 
     private errorHandle (status: number, other: any) {
-        // 状态码判断
-        switch (status) {
-            // 401: 未登录状态，跳转登录页
-            case 401:
-                console.warn('请先登录后再执行此操作!');
-                break;
-            // 403 token过期
-            // 清除token并跳转登录页
-            case 403:
-            console.warn('登录过期，请重新登录!');
-                break;
-            // 404请求不存在
-            case 404:
-            console.warn('请求的资源不存在');
-                break;
-            default:
-            console.warn(JSON.stringify(other));
-        }
+        this.interceptors.forEach(intercetor => {
+            if(intercetor.support(status)){
+                intercetor.failedHandle(status, other && JSON.stringify(other));
+            }
+        });
     }
 
     private initResponseInterceptors() {
         // 添加响应拦截器
         this.api && this.api.interceptors.response.use((response: AxiosResponse) => {
             // 对响应数据做点什么
-            if (response.data.code === 130002){
-                console.warn('登录过期，请重新登录!');
+            if (response.data.code !== 0){
+                this.interceptors.forEach(intercetor => {
+                    if(intercetor.support(response.status)){
+                        intercetor.failedHandle(response.status, response.data.msg, response.data.code);
+                    }
+                });
                 return Promise.reject(response);
-            } else if (response.data.code === 120003){
-                if (response.data.msg && (`${response.data.msg}`.indexOf('sessionId') >= 0)){
-                    console.warn('请先登录后再执行此操作!');
-                } else {
-                    console.warn(`[${response.data.code}]${response.data.msg}`);
-                }
-                return Promise.reject(response);
-            } else if ((response.data.code === 227454) || (response.data.code === 461632)){
-                console.warn(`[${response.data.code}]${response.data.msg}`);
-                return Promise.reject(response);
-            } else if (response.data.code !== 0){
-                console.warn(`[${response.data.code}]${response.data.msg}`);
-                return Promise.reject(response);
+            }else{
+                //成功
+                this.interceptors.forEach(intercetor => {
+                    if(intercetor.support(200, 0)){
+                        intercetor.successHandle(response.data);
+                    }
+                });
             }
             return response;
         }, (error: any) => {
@@ -201,5 +188,9 @@ export class ApiClientInstance implements ApiClient{
         this.preHandlers.push(handler);
         //排序
         this.preHandlers.sort((h1, h2) => h1.order() - h2.order());
+    }
+
+    addResponseInterceptor(interceptor: ApiResponseInterceptor): void {
+        this.interceptors.push(interceptor);
     }
 }

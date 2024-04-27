@@ -84,9 +84,13 @@ export interface ApiClient{
 
     readonly afterHandlers: ApiAfterHandler[];
 
+    readonly interceptors: ApiResponseInterceptor[];
+
     addPreHandler(handler: ApiPreHandler): void;
 
     addAfterHandler(handler: ApiAfterHandler): void;
+
+    addResponseInterceptor(interceptor: ApiResponseInterceptor): void;
 
     init(options: ApiOptions): void;
 
@@ -100,4 +104,10 @@ export interface ApiPreHandler{
 export interface ApiAfterHandler{
     order(): number;
     handle(api: ApiDesc, options: ApiOptions, response: AxiosResponse<any, any>): AxiosResponse<any, any>;
+}
+
+export interface ApiResponseInterceptor{
+    support(status: number, code?: number): boolean;
+    successHandle(data: any): void;
+    failedHandle(status: number, msg: string, code?: number): void;
 }
