@@ -14,8 +14,26 @@ export class ApiCheckSignAfterHandler implements ApiAfterHandler{
         if(!data){
             return response;
         }
+        let signParams:any = {};
+        Object.keys(data).forEach(key => {
+            let value = data[key];
+
+            if(typeof value === 'object' && value != null){
+                Object.keys(value).forEach(subKey => {
+                    signParams[`${key}.${subKey}`] = value[subKey];
+                });
+            }else if (value instanceof Array){
+                //数组
+                const arr = value as Array<any>;
+                arr.forEach((v, i) => {
+                    signParams[`${key}[${i}]`] = v;
+                })
+            }else{
+                signParams[key] = value;
+            }
+        });
         let timestamp = response.data.timestamp;
-        let sign = EncryptUtil.signSHA1Hex(data, timestamp, options.secret);
+        let sign = EncryptUtil.signSHA1Hex(signParams, timestamp, options.secret);
 
         if(response.data.sign != sign){
             //验签失败

@@ -1,3 +1,5 @@
+import {CurrentLoginUserInfo} from "../api/ApiClient";
+
 export class EncryptUtil {
     static AES = require('crypto-js/aes');
     static EncodeUtf8 = require('crypto-js/enc-utf8');
@@ -35,6 +37,9 @@ export class EncryptUtil {
 
     public static signSHA1Hex (data: any, timestamp: number, secret: string): string{
         let str = this.sortAndMontage(data);
+        if(CurrentLoginUserInfo.enableLog){
+            console.log(`sortedParamsResult:${str}`);
+        }
         let salt = String(timestamp);
         let txt = secret + salt + str + salt + secret;
 

@@ -48,7 +48,16 @@ export class ApiSignPreHandler implements ApiPreHandler{
         Object.keys(data).filter(key => !ignoreSignParams.has(key)).forEach(key => {
             let value = data[key];
 
-            if(typeof value === 'object' && value != null){
+            if (value instanceof Array){
+                //数组
+                if(ignoreSignParams.has(`${key}`)){
+                    return;
+                }
+                const arr = value as Array<any>;
+                arr.forEach((v, i) => {
+                    signParams[`${key}[${i}]`] = v;
+                })
+            }else if(typeof value === 'object' && value != null){
                 Object.keys(value).filter(subKey => !ignoreSignParams.has(`${key}.${subKey}`)).forEach(subKey => {
                     signParams[`${key}.${subKey}`] = value[subKey];
                 });
@@ -59,7 +68,16 @@ export class ApiSignPreHandler implements ApiPreHandler{
         data.parameters && Object.keys(data.parameters).filter(key => !ignoreSignParams.has(key)).forEach(key => {
             let value = data.parameters[key];
 
-            if(typeof value === 'object' && value != null){
+            if (value instanceof Array){
+                //数组
+                if(ignoreSignParams.has(`${key}`)){
+                    return;
+                }
+                const arr = value as Array<any>;
+                arr.forEach((v, i) => {
+                    signParams[`${key}[${i}]`] = v;
+                })
+            }else if(typeof value === 'object' && value != null){
                 Object.keys(value).filter(subKey => !ignoreSignParams.has(`${key}.${subKey}`)).forEach(subKey => {
                     signParams[`${key}.${subKey}`] = value[subKey];
                 });

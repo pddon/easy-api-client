@@ -71,6 +71,7 @@ export class LoginUserInfo {
     nickname?: string;
     countryCode?: string;
     online: boolean = false;
+    enableLog: boolean = false;
 };
 const currentLoginUserInfo = new LoginUserInfo();
 export const CurrentLoginUserInfo = currentLoginUserInfo;
