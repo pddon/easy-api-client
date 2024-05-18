@@ -6,6 +6,23 @@ export class ApiCheckSignAfterHandler implements ApiAfterHandler{
     static newInstance(): ApiAfterHandler{
         return new ApiCheckSignAfterHandler();
     }
+
+    convertToSignParams(signParams: any, key: string, value: any): void {
+        if (value instanceof Array){
+            //数组
+            const arr = value as Array<any>;
+            arr.forEach((v, i) => {
+                this.convertToSignParams(signParams, `${key}[${i}]`, v);
+            });
+        }else if(typeof value === 'object' && value != null){
+            Object.keys(value).forEach(subKey => {
+                this.convertToSignParams(signParams, `${key}.${subKey}`, value[subKey]);
+            });
+        }else{
+            signParams[key] = value;
+        }
+    }
+
     handle(api: ApiDesc, options: ApiOptions, response: AxiosResponse<any, any>): AxiosResponse<any, any> {
         if(!api.needSignResult){
             return response;
@@ -18,19 +35,7 @@ export class ApiCheckSignAfterHandler implements ApiAfterHandler{
         Object.keys(data).forEach(key => {
             let value = data[key];
 
-            if(typeof value === 'object' && value != null){
-                Object.keys(value).forEach(subKey => {
-                    signParams[`${key}.${subKey}`] = value[subKey];
-                });
-            }else if (value instanceof Array){
-                //数组
-                const arr = value as Array<any>;
-                arr.forEach((v, i) => {
-                    signParams[`${key}[${i}]`] = v;
-                })
-            }else{
-                signParams[key] = value;
-            }
+            this.convertToSignParams(signParams, key, value);
         });
         let timestamp = response.data.timestamp;
         let sign = EncryptUtil.signSHA1Hex(signParams, timestamp, options.secret);

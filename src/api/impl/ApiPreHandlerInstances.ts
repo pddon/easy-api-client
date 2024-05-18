@@ -34,6 +34,26 @@ export class ApiSignPreHandler implements ApiPreHandler{
     static newInstance(): ApiPreHandler{
         return new ApiSignPreHandler();
     }
+
+    convertToSignParams(signParams: any, ignoreSignParams: Set<string>, key: string, value: any): void {
+        if (value instanceof Array){
+            //数组
+            if(ignoreSignParams.has(`${key}`)){
+                return;
+            }
+            const arr = value as Array<any>;
+            arr.forEach((v, i) => {
+                this.convertToSignParams(signParams, ignoreSignParams, `${key}[${i}]`, v);
+            });
+        }else if(typeof value === 'object' && value != null){
+            Object.keys(value).filter(subKey => !ignoreSignParams.has(`${key}.${subKey}`)).forEach(subKey => {
+                this.convertToSignParams(signParams, ignoreSignParams, `${key}.${subKey}`, value[subKey]);
+            });
+        }else{
+            signParams[key] = value;
+        }
+    }
+
     handle(api: ApiDesc, options: ApiOptions, data?: any): any {
         if(!api.needSign){
             return data;
@@ -48,42 +68,12 @@ export class ApiSignPreHandler implements ApiPreHandler{
         Object.keys(data).filter(key => !ignoreSignParams.has(key)).forEach(key => {
             let value = data[key];
 
-            if (value instanceof Array){
-                //数组
-                if(ignoreSignParams.has(`${key}`)){
-                    return;
-                }
-                const arr = value as Array<any>;
-                arr.forEach((v, i) => {
-                    signParams[`${key}[${i}]`] = v;
-                })
-            }else if(typeof value === 'object' && value != null){
-                Object.keys(value).filter(subKey => !ignoreSignParams.has(`${key}.${subKey}`)).forEach(subKey => {
-                    signParams[`${key}.${subKey}`] = value[subKey];
-                });
-            }else{
-                signParams[key] = value;
-            }
+            this.convertToSignParams(signParams, ignoreSignParams, key, value);
         });
         data.parameters && Object.keys(data.parameters).filter(key => !ignoreSignParams.has(key)).forEach(key => {
             let value = data.parameters[key];
 
-            if (value instanceof Array){
-                //数组
-                if(ignoreSignParams.has(`${key}`)){
-                    return;
-                }
-                const arr = value as Array<any>;
-                arr.forEach((v, i) => {
-                    signParams[`${key}[${i}]`] = v;
-                })
-            }else if(typeof value === 'object' && value != null){
-                Object.keys(value).filter(subKey => !ignoreSignParams.has(`${key}.${subKey}`)).forEach(subKey => {
-                    signParams[`${key}.${subKey}`] = value[subKey];
-                });
-            }else{
-                signParams[key] = value;
-            }
+            this.convertToSignParams(signParams, ignoreSignParams, key, value);
         });
         let timestamp = Date.now();
 
@@ -109,7 +99,6 @@ export class ApiSysParamSetPreHandler implements ApiPreHandler{
         data.locale = options.locale;
         if (CurrentLoginUserInfo.online){
             data.sessionId = CurrentLoginUserInfo.sessionId;
-            data.userId = CurrentLoginUserInfo.userId;
         }
         data.clientId = CurrentLoginUserInfo.deviceId;
         data.versionCode = options.versionCode;
