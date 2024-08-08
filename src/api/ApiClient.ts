@@ -44,6 +44,10 @@ export type ApiDesc = {
      * 需要忽略验签的参数列表
      */
     ignoreSignParams?: string[];
+    /**
+     * 接口后缀，优先级高于ApiOptions配置中的apiSuffix
+     */
+    apiSuffix?: string;
 };
 
 export type ApiOptions = {

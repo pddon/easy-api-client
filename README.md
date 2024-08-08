@@ -38,6 +38,6 @@ client.request({
 1. 构建项目
   > `npm run build`
 2. 登录账号
-  > `npm login --registry=https://registry.npmjs.org/`
+  > `npm login --registry https://registry.npmjs.org/`
 3. 发布包
-  > `npm publish --registry=https://registry.npmjs.org/`
+  > `npm publish --registry https://registry.npmjs.org/`

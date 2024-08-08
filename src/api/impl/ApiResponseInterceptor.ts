@@ -8,6 +8,7 @@ export class DefaultApiResponseInterceptor implements ApiResponseInterceptor{
 
     failedHandle(status: number, msg: string, code?: number): void {
         // 状态码判断
+        code = code || 0;
         switch (status) {
             // 401: 未登录状态，跳转登录页
             case 401:

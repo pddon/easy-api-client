@@ -120,6 +120,13 @@ export class ApiClientInstance implements ApiClient{
         // 添加响应拦截器
         this.api && this.api.interceptors.response.use((response: AxiosResponse) => {
             // 对响应数据做点什么
+            if(!response){
+                return  response;
+            }
+            if(response.headers["Content-Type"] == "application/octet-stream"
+                || (response.headers["content-disposition"] && (response.headers["Content-Type"] != "application/json"))){
+                return response;
+            }
             if (response.data.code !== 0){
                 this.interceptors.forEach(intercetor => {
                     if(intercetor.support(response.status)){
@@ -158,8 +165,12 @@ export class ApiClientInstance implements ApiClient{
                 for(let h of this.preHandlers){
                     data = h.handle(api, this.options, data);
                 }
-                let url = this.options.baseUrl + api.apiName + (this.options.apiSuffix || '');
-
+                let url = this.options.baseUrl + api.apiName;
+                if(api.apiSuffix !== undefined){
+                    url += api.apiSuffix;
+                }else{
+                    url += (this.options.apiSuffix || '');
+                }
                 this.apiMethodMappings && this.apiMethodMappings[api.type](url, data, config).then((response: AxiosResponse) => {
                     //执行拦截器方法
                     for(let h of this.afterHandlers){
